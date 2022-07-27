@@ -109,6 +109,12 @@ BEGIN
 
     FOR r IN SELECT * FROM jsonb_to_record(pPayload) AS x(fields jsonb)
     LOOP
+        -- пересчёт связей, если нужно
+        for e in SELECT p.id as pid from api.participant p
+            inner join db.session s ON p.userid = s.userid
+            WHERE s.code = current_session() and p.link_refresh loop
+            PERFORM SetLinkCountByInteractionForClient(e.pid);
+        end loop;
       FOR e IN EXECUTE format('SELECT %s FROM api.whoami', JsonbToFields(r.fields, GetColumns('whoami', 'api')))
       LOOP
         RETURN NEXT row_to_json(e);
